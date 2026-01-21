@@ -1,138 +1,226 @@
-# FDA Drug Safety Dashboard - Live API Version
+# FDA Drug Safety Dashboard
 
 Real-time adverse drug event monitoring dashboard powered by the FDA FAERS API.
 
-## 🚀 Quick Start
+## Overview
 
-### Local Development
+This dashboard provides comprehensive analysis of adverse drug events reported to the FDA. It fetches live data directly from the OpenFDA API, processes and transforms the data in real-time, and presents interactive visualizations for drug safety monitoring.
+
+**Live Demo:** [View Dashboard](https://olneyjr-fda-drug-safety-dashboard.streamlit.app)
+
+## Features
+
+- **Live FDA API Integration** - Direct connection to OpenFDA adverse events API
+- **Real-time Data Processing** - Fetches and transforms 5,000+ recent adverse event records
+- **Risk Classification** - Automated drug risk scoring based on fatality rates and severity
+- **Interactive Visualizations** - Plotly-powered charts and graphs
+- **Drug Search** - Search and analyze specific medications
+- **Smart Caching** - One-hour cache to optimize performance and API usage
+
+## Dashboard Views
+
+### Overview
+Key metrics including total drugs monitored, adverse events, serious events, hospitalizations, life-threatening events, deaths, and average patient age. Includes risk distribution and demographic analysis.
+
+### High Risk Drugs
+Analysis of drugs with highest fatality rates (minimum 10 events), ranked by percentage of fatal outcomes.
+
+### Top Drugs
+Top 20 drugs by adverse event volume with scatter plot visualization showing relationship between event volume, serious event rate, and deaths.
+
+### Demographics
+Patient demographic breakdown including distribution by sex and age groups (Pediatric, Young Adult, Middle Age, Senior).
+
+### Drug Search
+Search functionality for specific medications with detailed safety metrics, event counts, and risk classification.
+
+## Technical Architecture
+
+### Data Pipeline
+
+```
+FDA OpenFDA API
+    |
+    v
+API Client (rate limiting, error handling)
+    |
+    v
+Data Extraction (5,000 records)
+    |
+    v
+Data Transformation (age normalization, risk scoring)
+    |
+    v
+In-Memory Analytics (Pandas DataFrames)
+    |
+    v
+Streamlit Dashboard (cached for 1 hour)
+```
+
+### Key Transformations
+
+**Age Normalization**
+- Converts FDA age unit codes to standardized years
+- Handles: Decades, Years, Months, Weeks, Days, Hours
+- Bug fix: Corrects FDA code 801 (Year, previously misinterpreted as Month)
+
+**Risk Classification Algorithm**
+```python
+if total_events < 5:
+    return 'Minimal Data'
+elif fatality_rate > 15:
+    return 'High Risk'
+elif fatality_rate > 5:
+    return 'Moderate Risk'
+else:
+    return 'Low Risk'
+```
+
+**Severity Scoring (0-5 scale)**
+```python
+severity = (
+    (serious_rate / 20) +
+    (fatality_rate / 20) +
+    (life_threatening / total_events * 5)
+).clip(0, 5)
+```
+
+## Technology Stack
+
+- **Frontend:** Streamlit 1.29.0
+- **Data Processing:** Pandas 2.1.4
+- **Visualizations:** Plotly 5.18.0
+- **API Integration:** Requests 2.31.0
+- **Language:** Python 3.11+
+
+## Installation
+
+### Prerequisites
+- Python 3.9 or higher
+- pip package manager
+
+### Local Setup
 
 ```bash
+# Clone repository
+git clone https://github.com/olneyjR/fda-drug-safety-dashboard.git
+cd fda-drug-safety-dashboard
+
 # Install dependencies
 pip install -r requirements_live.txt
 
-# Run the app
+# Run application
 streamlit run streamlit_app_live.py
 ```
 
-### Deployment (Streamlit Cloud, Heroku, etc.)
+The application will open at `http://localhost:8501`
 
-1. **Upload these files:**
-   - `streamlit_app_live.py` (main app)
-   - `utils/fda_api.py` (API client)
-   - `requirements_live.txt` (dependencies)
+**Note:** First load takes 2-3 minutes to fetch data from FDA API. Subsequent loads are instant (cached).
 
-2. **Set app entry point:**
-   - Main file: `streamlit_app_live.py`
+## Deployment
 
-3. **Deploy!** No environment variables or API keys needed.
+### Streamlit Cloud
 
-## 📊 Features
+1. Push code to GitHub
+2. Visit https://share.streamlit.io
+3. Click "New app"
+4. Select repository: `olneyjR/fda-drug-safety-dashboard`
+5. Set main file: `streamlit_app_live.py`
+6. Click "Deploy"
 
-- **Live FDA API Integration** - No database required
-- **Real-time Data** - Fetches 5,000 recent adverse events
-- **Smart Caching** - 1-hour cache to avoid rate limits
-- **Full Analytics** - Risk classification, demographics, drug search
-- **Beautiful UI** - Modern design with Plotly visualizations
-- **Zero Configuration** - No API keys or setup needed
+### Other Platforms
 
-## 🏗️ Architecture
+**Heroku**
+```bash
+# Create Procfile
+echo "web: streamlit run streamlit_app_live.py --server.port=\$PORT --server.address=0.0.0.0" > Procfile
 
-```
-streamlit_app_live.py
-├── FDA API Client (utils/fda_api.py)
-│   ├── fetch_adverse_events() → Raw JSON
-│   ├── flatten_events() → Pandas DataFrame
-│   └── transform_to_analytics() → Analytics-ready data
-│
-└── Streamlit Dashboard
-    ├── Overview metrics
-    ├── High risk drugs
-    ├── Top drugs by volume
-    ├── Demographics analysis
-    └── Drug search
+# Deploy
+heroku create fda-drug-safety
+git push heroku main
 ```
 
-## 🔧 Technical Details
+**Docker**
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements_live.txt .
+RUN pip install -r requirements_live.txt
+COPY . .
+EXPOSE 8501
+CMD ["streamlit", "run", "streamlit_app_live.py"]
+```
 
-**Data Pipeline:**
-1. Fetch 5,000 records from FDA API (takes ~2 minutes)
-2. Flatten nested JSON structure
-3. Apply Silver layer transformations (age normalization, type casting)
-4. Build Gold layer aggregations (drug risk profiles)
-5. Cache for 1 hour via Streamlit's `@st.cache_data`
+## API Rate Limiting
 
-**Key Transformations:**
-- Age unit normalization (801=Year bug fix)
-- Sex code mapping (1=Male, 2=Female)
-- Risk classification algorithm
-- Severity scoring (0-5 scale)
+The FDA API has the following limits:
+- 240 requests per minute (anonymous)
+- 1,000 requests per minute (with API key)
 
-## 📦 Dependencies
+This application implements automatic rate limiting with exponential backoff to stay within limits. Fetching 5,000 records typically requires ~50 API calls over 2-3 minutes.
 
-- `streamlit==1.29.0` - Dashboard framework
-- `pandas==2.1.4` - Data manipulation
-- `plotly==5.18.0` - Interactive visualizations
-- `requests==2.31.0` - HTTP API calls
+## Performance
 
-## 🎯 Deployment Targets
+| Metric | Value |
+|--------|-------|
+| First Load | 2-3 minutes |
+| Cached Load | <1 second |
+| Cache Duration | 1 hour |
+| Records Fetched | 5,000 |
+| API Calls | ~50 |
 
-**✅ Streamlit Cloud** (Recommended)
-- Free tier works perfectly
-- One-click deployment from GitHub
-- Automatic updates on git push
+## Data Quality
 
-**✅ Heroku**
-- Add `Procfile`: `web: streamlit run streamlit_app_live.py --server.port=$PORT`
-- Free tier sufficient
+The dashboard implements several data quality measures:
+- Age unit validation and conversion
+- Type casting with error handling
+- NULL value management
+- Duplicate detection
+- Outlier flagging for age (0-120 years)
 
-**✅ AWS/GCP/Azure**
-- Deploy as container or VM
-- Expose port 8501
+## Project Structure
 
-## 🚨 Rate Limits
+```
+fda-drug-safety-dashboard/
+├── streamlit_app_live.py      # Main dashboard application
+├── utils/
+│   ├── __init__.py
+│   └── fda_api.py             # FDA API client and transformations
+├── requirements_live.txt       # Python dependencies
+└── README.md                   # This file
+```
 
-FDA API allows 240 requests/minute (anonymous). The app:
-- Fetches 5,000 records per load (~50 requests)
-- Caches for 1 hour
-- Implements rate limiting with exponential backoff
+## Contributing
 
-**Normal usage:** Well within limits  
-**Heavy testing:** Use the "Refresh Data" button sparingly
+This is a portfolio project and not currently accepting contributions. However, feel free to fork and adapt for your own use.
 
-## 🔄 Comparing to Full Pipeline Version
+## Data Source
 
-| Feature | Live API | Full Pipeline |
-|---------|----------|---------------|
-| Setup | Zero config | Docker + Airflow + dbt |
-| Deployment | Any platform | Requires containers |
-| Data freshness | Every hour | Scheduled DAGs |
-| Data volume | 5,000 records | Unlimited |
-| Performance | ~2 min initial load | Sub-second (pre-computed) |
-| Best for | Demos, prototypes | Production, scale |
+This application uses the FDA Adverse Event Reporting System (FAERS) database accessed through the OpenFDA API.
 
-## 📝 Notes
+**API Documentation:** https://open.fda.gov/apis/drug/event/
 
-- First load takes 2-3 minutes to fetch from FDA API
-- Subsequent loads are instant (cached)
-- Refresh button clears cache and fetches new data
-- All styling and functionality preserved from original app
+**Important:** This dashboard is for informational and educational purposes only. It should not be used for clinical decision-making or medical advice.
 
-## 🎨 Portfolio Value
+## License
 
-This live API version demonstrates:
-- **API Integration** - Direct REST API consumption
-- **Data Engineering** - ETL logic without infrastructure
-- **Smart Caching** - Performance optimization
-- **Clean Architecture** - Separation of concerns
-- **Production Ready** - Error handling, rate limiting
+MIT License - See LICENSE file for details
 
-Perfect for showcasing data engineering skills without requiring reviewers to run Docker/Airflow!
-
-## 📧 Contact
+## Author
 
 Jeffrey Olney  
-[LinkedIn](https://linkedin.com/in/jeffrey-olney) | [GitHub](https://github.com/jeffrey-olney)
+Data Engineer | Healthcare Analytics
+
+**Connect:**
+- LinkedIn: [linkedin.com/in/jeffrey-olney](https://linkedin.com/in/jeffrey-olney)
+- GitHub: [@olneyjR](https://github.com/olneyjR)
+
+## Acknowledgments
+
+- FDA OpenFDA API for providing public access to adverse event data
+- Streamlit for the excellent dashboard framework
+- Plotly for interactive visualization capabilities
 
 ---
 
-**Not for clinical use.** Educational/portfolio project only.
+**Disclaimer:** This dashboard displays adverse event reports submitted to FDA. These reports have not been scientifically or otherwise verified as to a cause and effect relationship and cannot be used to estimate incidence or calculate rates. The existence of an adverse event report does not establish causation.
