@@ -21,7 +21,7 @@ from utils.fda_api import FDAAPIClient
 # -------------------------
 st.set_page_config(
     page_title="FDA Drug Safety Dashboard",
-    page_icon="💊",
+    page_icon="ðŸ’Š",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -51,23 +51,23 @@ st.markdown("""
     
     /* Content width limiter */
     .main .block-container {
-        max-width: 1400px;
+        max-width: 1200px;
         padding: 1rem 2rem 4rem 2rem;
     }
     
     /* Custom header with refined styling */
     .custom-header {
         background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        padding: 2rem 3rem;
+        padding: 1.5rem 2rem;
         border-radius: 24px;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
         box-shadow: 0 20px 50px rgba(59, 130, 246, 0.15);
         border: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     .custom-header h1 {
         color: white;
-        font-size: 3.25rem;
+        font-size: 2.75rem;
         font-weight: 800;
         margin: 0;
         letter-spacing: -1.5px;
@@ -76,8 +76,8 @@ st.markdown("""
     
     .custom-header p {
         color: rgba(255, 255, 255, 0.95);
-        font-size: 1.15rem;
-        margin-top: 0.75rem;
+        font-size: 1rem;
+        margin-top: 0.5rem;
         font-weight: 400;
         letter-spacing: 0.2px;
     }
@@ -85,7 +85,7 @@ st.markdown("""
     /* Enhanced metric cards */
     .metric-card {
         background: white;
-        padding: 2rem;
+        padding: 1.25rem 1.5rem;
         border-radius: 20px;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -127,14 +127,14 @@ st.markdown("""
     }
     
     .metric-value {
-        font-size: 2.75rem;
+        font-size: 2.25rem;
         font-weight: 800;
         background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
         line-height: 1.1;
-        margin: 0.5rem 0;
+        margin: 0.25rem 0;
     }
     
     .metric-delta {
@@ -253,10 +253,11 @@ def normalize_risk_labels(df: pd.DataFrame, col: str = "risk_classification") ->
 
 
 def donut_chart(df: pd.DataFrame, values: str, names: str, title: str, height: int = 400):
-    fig = px.pie(df, values=values, names=names, hole=0.4, title=title)
+    fig = px.pie(df, values=values, names=names, hole=0.4)
     fig.update_layout(
         height=height,
-        title_font=dict(size=18, family="Inter", color="#1f2937"),
+        title="",
+        showlegend=True,
         font=dict(family="Inter"),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
@@ -394,7 +395,7 @@ with st.sidebar:
     *Cached for 1 hour*
     """)
     
-    if st.button("🔄 Refresh Data"):
+    if st.button("ðŸ”„ Refresh Data"):
         st.cache_data.clear()
         st.rerun()
 
@@ -422,7 +423,7 @@ st.markdown("""
         </svg>
         FDA Drug Safety Dashboard
     </h1>
-    <p>Live Monitoring of Adverse Drug Events • Real-Time FDA API</p>
+    <p>Live Monitoring of Adverse Drug Events â€¢ Real-Time FDA API</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -557,7 +558,7 @@ if view == "Overview":
         fig.update_layout(
             showlegend=False, 
             height=400,
-            title_font=dict(size=18, family="Inter", color="#1f2937"),
+            title="",
             font=dict(family="Inter"),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
@@ -577,11 +578,12 @@ if view == "Overview":
     st.markdown('<div class="section-header" style="font-size: 1.5rem;">Age Group Analysis</div>', unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
-    st.markdown("#### Events by Age Group")
-    age_df = load_age_analysis()
-
-    col1, col2 = st.columns([2, 1], gap="large")
+    col1, col2 = st.columns(2, gap="large")
+    
     with col1:
+        st.markdown("#### Events by Age Group")
+        age_df = load_age_analysis()
+        
         fig = px.bar(
             age_df,
             x="age_group",
@@ -591,7 +593,8 @@ if view == "Overview":
             labels={"total_events": "Total Events", "age_group": "Age Group", "deaths": "Deaths"},
         )
         fig.update_layout(
-            height=300,
+            height=400,
+            title="",
             font=dict(family="Inter"),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
@@ -599,8 +602,10 @@ if view == "Overview":
             yaxis=dict(showgrid=True, gridcolor='#f3f4f6'),
         )
         st.plotly_chart(fig, use_container_width=True)
+    
     with col2:
-        st.dataframe(age_df, use_container_width=True, hide_index=True, height=300)
+        st.markdown("#### Age Group Details")
+        st.dataframe(age_df, use_container_width=True, hide_index=True, height=400)
 
 # HIGH RISK DRUGS VIEW
 elif view == "High Risk Drugs":
@@ -621,7 +626,8 @@ elif view == "High Risk Drugs":
             labels={"fatality_rate": "Fatality Rate (%)", "drug_name": "Drug", "death_reports": "Deaths"},
         )
         fig.update_layout(
-            height=400, 
+            height=400,
+            title="",
             xaxis_tickangle=-45,
             font=dict(family="Inter"),
             plot_bgcolor='rgba(0,0,0,0)',
@@ -721,6 +727,7 @@ elif view == "Top Drugs":
         )
         fig.update_layout(
             height=500,
+            title="",
             font=dict(family="Inter"),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
@@ -795,6 +802,7 @@ elif view == "Demographics":
         )
         fig.update_layout(
             height=300,
+            title="",
             font=dict(family="Inter"),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
