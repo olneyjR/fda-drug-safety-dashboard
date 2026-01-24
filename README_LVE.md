@@ -6,7 +6,7 @@ Real-time adverse drug event monitoring dashboard powered by the FDA FAERS API.
 
 This dashboard provides comprehensive analysis of adverse drug events reported to the FDA. It fetches live data directly from the OpenFDA API, processes and transforms the data in real-time, and presents interactive visualizations for drug safety monitoring.
 
-**Live Demo:** [View Dashboard](https://olneyjr-fda-drug-safety-dashboard.streamlit.app)
+**Live Demo:** [View Dashboard](https://fda-drug-safety-dashboard-api-supplamental.streamlit.app/)
 
 ## Features
 
