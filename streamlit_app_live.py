@@ -269,10 +269,11 @@ def donut_chart(df: pd.DataFrame, values: str, names: str, title: str, height: i
 # Data loading with FDA API
 # -------------------------
 @st.cache_data(ttl=3600, show_spinner="Fetching live data from FDA API...")
-def load_fda_data(record_limit: int = 5000):
+def load_fda_data(record_limit: int = 5000, cache_version: int = 10):
     """
     Load data directly from FDA API
     Cache for 1 hour to avoid excessive API calls
+    cache_version: Increment this to bust the cache when logic changes
     """
     client = FDAAPIClient()
     raw_df = client.fetch_adverse_events(limit=record_limit)
@@ -282,7 +283,7 @@ def load_fda_data(record_limit: int = 5000):
 
 # Load data once
 try:
-    data = load_fda_data(record_limit=5000)
+    data = load_fda_data(record_limit=5000, cache_version=3)
     events_df = data['events']
     drug_risk_df = data['drug_risk_profile']
 except Exception as e:
@@ -371,7 +372,18 @@ def load_event_details():
 
 def search_drug(drug_name: str):
     mask = drug_risk_df['drug_name'].str.contains(drug_name, case=False, na=False)
-    return drug_risk_df[mask].sort_values('total_adverse_events', ascending=False)
+    results = drug_risk_df[mask].sort_values('total_adverse_events', ascending=False)
+    
+    # DEBUG: Show what's in the data for the first result
+    if len(results) > 0:
+        first_drug = results.iloc[0]
+        st.sidebar.write("DEBUG INFO:")
+        st.sidebar.write(f"Drug: {first_drug['drug_name']}")
+        st.sidebar.write(f"Total Events: {first_drug['total_adverse_events']}")
+        st.sidebar.write(f"Serious Events: {first_drug['serious_events']}")
+        st.sidebar.write(f"Serious Rate: {first_drug['serious_event_rate']:.2f}%")
+    
+    return results
 
 
 # -------------------------
@@ -393,6 +405,10 @@ with st.sidebar:
     Drugs analyzed: {len(drug_risk_df):,}
     
     *Cached for 1 hour*
+    
+    **DEBUG:**  
+    Unique reports: {events_df['safetyreportid'].nunique():,}  
+    Row/Report ratio: {len(events_df)/events_df['safetyreportid'].nunique():.2f}x
     """)
     
     if st.button("ðŸ”„ Refresh Data"):

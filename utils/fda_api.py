@@ -192,9 +192,13 @@ class FDAAPIClient:
         df_clean['is_death'] = df_clean['seriousnessdeath'].fillna(0).astype(int)
         df_clean['is_life_threatening'] = df_clean['seriousnesslifethreatening'].fillna(0).astype(int)
         df_clean['is_hospitalization'] = df_clean['seriousnesshospitalization'].fillna(0).astype(int)
-        
-        # Gold layer: Build drug risk profile mart
-        drug_profile = df_clean.groupby('drug_name').agg({
+ 
+       # Gold layer: Build drug risk profile mart
+        # Step 1: Deduplicate - keep one row per (drug, report) combination
+        df_deduped = df_clean.drop_duplicates(subset=['drug_name', 'safetyreportid'], keep='first')
+
+        # Step 2: Aggregate directly to drug level
+        drug_profile = df_deduped.groupby('drug_name').agg({  # ← THIS LINE
             'safetyreportid': 'count',
             'is_serious': 'sum',
             'is_death': 'sum',
